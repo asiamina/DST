@@ -1,0 +1,75 @@
+setwd("/Users/moitrayeechatterjee/Documents/Research/Webspam detection using DST/Conference/Dempster-Shafer/User-confidence")
+webspam_dataset <- read.table(file = "WEBSPAM-UK2007-merged-raw-assessments.txt", header = TRUE, sep = " ", stringsAsFactors = FALSE)
+webspam_result <- read.table(file = "WEBSPAM-UK2007-merged-labels.txt", header = TRUE, sep = " ", stringsAsFactors = FALSE)
+require("dst")
+require("sqldf")
+resultlist <- list()
+exportresult <- c()
+exportuserdata <- c()
+webspam_dataset <- sqldf("select * from webspam_dataset where label !='-'")
+n <- c("trust","mistrust", "unknown")
+uniqj <- unique(unlist(webspam_dataset$assessor))
+for(i in uniqj)
+{	
+	#timestamp  <- 1	
+	xlist <- list()
+	xlist <- initsing(3,n)
+	rppml <- function(i)
+			{
+				#flag <- 
+				uniqhost <- unique(unlist(webspam_dataset$host [which(webspam_dataset$assessor == i)]))
+				for(j in uniqhost) 
+					{
+					ma <- c ()
+					fx <- matrix(rbind(c(1,1,1)),ncol=3, byrow=TRUE)
+					subwebspam <- webspam_dataset[which(webspam_dataset$host == j & 											webspam_dataset$assessor ==i),]
+					host_label_pred <- subwebspam$label[subwebspam$timestamp==max(subwebspam$timestamp)]
+					host_label_act <- webspam_result$labels[which(webspam_result$host == j)]
+					if ( host_label_pred == host_label_act)
+						{
+            					fx<- rbind(c(1,0,0),fx)
+#print(fx)
+						ma <- c(ma,1)
+#print(ma)
+						}
+					if ( host_label_pred != host_label_act & host_label_pred != 'unknown' & host_label_pred != 'borderline')											{
+						fx <- rbind(c(0,1,0),fx)
+#print(fx)
+						ma <- c(ma,1)
+#print(ma)
+						}
+					if ( host_label_pred == 'unknown' & host_label_pred == 'borderline') 													{
+						fx <- rbind(c(0,0,1),fx)
+#print(fx)
+						ma<- c(ma,1)
+#print(ma)
+						}			
+					ma <- c(ma,0)
+					x <- bca(ma,fx,n)
+		            		#xlist <- initsing(3,n)
+					xlist <-dsrwon(xlist, x)
+		          			names(xlist)[1] <- "DempsterRule"
+					
+					#exportuserdata <- rbind(exportresult, cbind(i, j, timestamp, 
+					#timestamp <- timestamp +1
+	           			}
+				names(xlist)[1] <- "combination"
+				return (xlist)
+			}
+	temp<-rppml(i)
+	resultlist<-append(resultlist,temp)
+	resultlist<-append(resultlist, nzdsr(temp))
+	printresult <- nzdsr(temp)
+	aa <-which.max(printresult$DempsterRule[,1])
+	bb <- which(printresult$DempsterRule[aa,] == 1 & colnames(printresult$DempsterRule) != "mass" )
+	cc <- which.max(printresult$DempsterRule[,3])
+	if (is.finite(printresult$DempsterRule[cc,1]))
+		exportresult <- rbind(exportresult, cbind(i, colnames(printresult$DempsterRule)[bb], 
+								printresult$DempsterRule[cc,1], 
+								printresult$con))
+	
+}
+write.table(exportresult, file = "results_merged.csv", sep = "\t", row.names = FALSE)
+
+
+
